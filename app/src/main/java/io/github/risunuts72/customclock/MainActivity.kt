@@ -30,14 +30,15 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -71,7 +72,16 @@ fun AppRoot() {
 	val drawerState = rememberDrawerState(DrawerValue.Closed)
 	val scope = rememberCoroutineScope()
 
-	var updateDateMinute by remember { mutableFloatStateOf(240f) }
+	val context = LocalContext.current
+	val repository = remember { ClockSettingsRepository(context) }
+
+	val updateDateMinute by repository.updateDateMinuteFlow.collectAsState(initial =  240f)
+
+	fun updateUpdateDateMinute(newValue: Float) {
+		scope.launch {
+			repository.saveUpdateDateMinutes(newValue)
+		}
+	}
 
 	ModalNavigationDrawer(
 		drawerState = drawerState,
@@ -121,7 +131,7 @@ fun AppRoot() {
 				composable("settings") {
 					SettingsScreen(
 						updateDateMinute = updateDateMinute,
-						onUpdateDateMinuteChange = { updateDateMinute = it },
+						onUpdateDateMinuteChange = { updateUpdateDateMinute(it) }
 					)
 				}
 			}
@@ -215,21 +225,25 @@ fun SettingsScreen(updateDateMinute: Float, onUpdateDateMinuteChange: (Float) ->
 		Spacer(modifier = Modifier.height(8.dp))
 		Row(
 			verticalAlignment = Alignment.CenterVertically,
-			modifier = Modifier.fillMaxWidth(),
+			modifier = Modifier.fillMaxWidth().padding(end = 4.dp),
 		) {
 			Text(
 				text = "0:00",
 				style = MaterialTheme.typography.labelSmall,
+				maxLines = 1,
+				softWrap = false,
 			)
 			Slider(
 				value = updateDateMinute,
 				onValueChange = onUpdateDateMinuteChange,
-				valueRange = 0f..720f,
+				valueRange = 0f..360f,
 				steps = 11,
 			)
 			Text(
 				text = "6:00",
 				style = MaterialTheme.typography.labelSmall,
+				maxLines = 1,
+				softWrap = false,
 			)
 		}
 	}
